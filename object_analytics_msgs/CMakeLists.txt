@@ -38,7 +38,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ObjectsInBoxes3D.msg"
   "msg/TrackedObject.msg"
   "msg/TrackedObjects.msg"
-  DEPENDENCIES std_msgs sensor_msgs geometry_msgs object_msgs
+  "msg/MovingObject.msg"
+  "msg/MovingObjectStamped.msg"
+  "msg/MovingObjectsInFrame.msg"
+  "msg/SocialObject.msg"
+  "msg/SocialObjectsInFrame.msg"
+  DEPENDENCIES builtin_interfaces std_msgs sensor_msgs geometry_msgs object_msgs
 )
 
 install(

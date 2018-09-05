@@ -57,7 +57,7 @@ public:
     f_tracking_sub_ = std::make_unique<FilteredTracking>(this, kTopicTracking_);
 
     sync_sub_ =
-        std::make_unique<FilteredSync>(*f_image_sub_, *f_tracking_sub_, 10);
+        std::make_unique<FilteredSync>(*f_image_sub_, *f_tracking_sub_, 100);
     sync_sub_->registerCallback(&ImagePublisher::onObjectsReceived, this);
 
     image_pub_ = create_publisher<ImageMsg>("/object_analytics/image_publisher");
@@ -82,7 +82,7 @@ private:
   std::unique_ptr<FilteredLocalization> f_image_sub_;
   std::unique_ptr<FilteredSync> sync_sub_;
 
-  const std::string kTopicImage_ = "/object_analytics/rgb";
+  const std::string kTopicImage_ = "/camera/color/image_raw";
   const std::string kTopicTracking_ = "/object_analytics/tracking";
   const std::string kTopicLocalization_ = "/object_analytics/localization";
 
@@ -109,13 +109,14 @@ private:
                   tra->header.stamp.sec, tra->header.stamp.nanosec,
                   img->header.stamp.sec, img->header.stamp.nanosec);
       return;
+      
     }
-    if (img->header.frame_id != tra->header.frame_id)
-    {
-      RCLCPP_WARN(get_logger(), "...Doesn't meet the frame_id check, do nothing for the current \
-      messages");
-      return;
-    }
+    // if (img->header.frame_id != tra->header.frame_id)
+    // {
+    //   RCLCPP_WARN(get_logger(), "...Doesn't meet the frame_id check, do nothing for the current \
+    //   messages");
+    //   return;
+    // }
 
 
     cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(img, "bgr8");
