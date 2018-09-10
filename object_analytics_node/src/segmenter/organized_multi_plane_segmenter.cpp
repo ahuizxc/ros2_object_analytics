@@ -58,7 +58,6 @@ void OrganizedMultiPlaneSegmenter::segment(const PointCloudT::ConstPtr& cloud, P
 
   PointCloud<Label>::Ptr labels(new PointCloud<Label>);
   std::vector<PointIndices> label_indices;
-  segmentPlanes(cloud, normal_cloud, labels, label_indices);
   segmentObjects(cloud, labels, label_indices, cluster_indices);
 
   double end = pcl::getTime();
@@ -104,25 +103,22 @@ void OrganizedMultiPlaneSegmenter::segmentObjects(const PointCloudT::ConstPtr& c
 
   std::vector<bool> plane_labels;
   plane_labels.resize(label_indices.size(), false);
-  for (size_t i = 0; i < label_indices.size(); i++)
+  for (size_t i = 0; i < cloud->points.size(); i++)
   {
-    if (label_indices[i].indices.size() > plane_minimum_points_)
-    {
-      plane_labels[i] = true;
-    }
+    pcl::Label lab;
+    lab.label = i;
+    labels->points.push_back(lab);
   }
-
   euclidean_cluster_comparator_->setInputCloud(cloud);
   euclidean_cluster_comparator_->setLabels(labels);
   euclidean_cluster_comparator_->setExcludeLabels(plane_labels);
-
   PointCloud<Label> euclidean_labels;
   pcl::OrganizedConnectedComponentSegmentation<PointT, Label> euclidean_segmentation(euclidean_cluster_comparator_);
   euclidean_segmentation.setInputCloud(cloud);
   euclidean_segmentation.segment(euclidean_labels, cluster_indices);
 
-  auto func = [this](PointIndices indices) { return indices.indices.size() < this->object_minimum_points_; };
-  cluster_indices.erase(std::remove_if(cluster_indices.begin(), cluster_indices.end(), func), cluster_indices.end());
+  // auto func = [this](PointIndices indices) { return indices.indices.size() < this->object_minimum_points_; };
+  // cluster_indices.erase(std::remove_if(cluster_indices.begin(), cluster_indices.end(), func), cluster_indices.end());
 
   double end = pcl::getTime();
   RCUTILS_LOG_DEBUG("Cluster : %f", double(end - start));
