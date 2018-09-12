@@ -18,7 +18,7 @@
 #define OBJECT_ANALYTICS_NODE_MODEL_OBJECT2D_H
 
 #include <object_msgs/msg/object_in_box.hpp>
-
+#include <geometry_msgs/msg/point32.h>
 namespace object_analytics_node
 {
 namespace model

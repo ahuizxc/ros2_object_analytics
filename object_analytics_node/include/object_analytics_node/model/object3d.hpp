@@ -115,6 +115,23 @@ public:
     roi_ = roi_new;
   }
 
+
+  inline void setMinMax()
+  {
+    float width = max_.x - min_.x;
+    float height = max_.y - min_.y;
+    min_.x = min_.x - 1.5 * width;
+    min_.y = min_.y - 1.5 * height;
+    max_.x = max_.x + 1.5 * width;
+    max_.y = max_.y + 1.5 * height;
+  }
+  inline void setMax(const geometry_msgs::msg::Point32& max_new)
+  {
+    max_.x = 4 * max_new.x;
+    max_.y = 4 * max_new.y;
+  }
+
+
   /**
    * Overload operator << to dump information of underlying information.
    *

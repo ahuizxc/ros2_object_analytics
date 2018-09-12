@@ -19,12 +19,14 @@
 #include <pcl/filters/impl/conditional_removal.hpp>
 #include <pcl/filters/impl/filter.hpp>
 #include <pcl/search/impl/organized.hpp>
+#include <pcl/filters/passthrough.h>
+#include <pcl/filters/uniform_sampling.h>
 //#include <pcl/segmentation/impl/organized_connected_component_segmentation.hpp>
 //#include <pcl/segmentation/organized_connected_component_segmentation.h>
 #include <rcutils/logging_macros.h>
 #include "object_analytics_node/const.hpp"
 #include "object_analytics_node/segmenter/organized_multi_plane_segmenter.hpp"
-
+#include <pcl/filters/statistical_outlier_removal.h>
 namespace object_analytics_node
 {
 namespace segmenter
@@ -50,15 +52,69 @@ void OrganizedMultiPlaneSegmenter::segment(const PointCloudT::ConstPtr& cloud, P
 {
   double start = pcl::getTime();
   RCUTILS_LOG_DEBUG("Total original point size = %d", cloud->size());
+  //pcl::copyPointCloud(*cloud, *cloud_segment);  // cloud_segment is same as cloud for this algorithm
 
-  pcl::copyPointCloud(*cloud, *cloud_segment);  // cloud_segment is same as cloud for this algorithm
 
-  PointCloud<Normal>::Ptr normal_cloud(new PointCloud<Normal>);
-  estimateNormal(cloud, normal_cloud);
+
+  // std::vector<double> z_vector;
+  // Eigen::Vector4f centroid;    
+  // pcl::compute3DCentroid(*cloud, centroid);
+  // std::cout << "center---x: " << centroid[0] << " y: " << centroid[1] << " z: " << centroid[2] << std::endl;
+  // for (size_t i=0; i<=cloud->points.size(); i++)
+  // {
+  //   z_vector.push_back(cloud->points[i].z);
+  // }
+  // double sum = std::accumulate(std::begin(z_vector), std::end(z_vector), 0.0);  
+  // double mean =  centroid[2]; //均值     
+  // double accum  = 0.0;  
+  // std::for_each (std::begin(z_vector), std::end(z_vector), [&](const double d) {  
+  //     accum  += (d-mean)*(d-mean);  
+  // });
+  // double stdev = sqrt(accum/(z_vector.size()-1)); //方差 
+  // double z_max = 0.5 * stdev + mean;
+  // double z_min = -0.5 * stdev + mean;
+  // for (size_t i=0;i<=cloud->points.size(); i++)
+  // {
+  //   pcl::PointXYZ point;
+  //   point = cloud->points[i];
+  //   if (point.z > z_max)
+  //   {
+  //     point.z = z_max;
+  //   }
+  //   if (point.z < z_min)
+  //   {
+  //     point.z = z_min;
+  //   }
+  //   point.z = mean;
+  //   cloud_segment->points.push_back(point);
+  // }
+  // cloud_segment->height = cloud->height;
+  // cloud_segment->width = cloud->width;
+  // pcl::PassThrough<pcl::PointXYZ> pass;  
+  // pass.setInputCloud (cloud);  
+  // pass.setFilterFieldName ("z");  
+  // pass.setFilterLimits (z_min, z_max);  
+  // //pass.setFilterLimitsNegative (true);  
+  // pass.filter (*cloud_segment);
+
+
+  // pcl::RadiusOutlierRemoval<pcl::PointXYZ> sor;   //创建滤波器对象
+  // pcl::IndicesPtr indices (new std::vector <int>);
+  // sor.setInputCloud (cloud);               //设置待滤波的点云
+  // sor.setRadiusSearch (0.5);                               //设置在进行统计时考虑查询点临近点数
+  // sor.setMinNeighborsInRadius(3);
+  // std::cout << "filter begin!" << std::endl;                     //设置判断是否为离群点的阀值  
+  // sor.filter (*cloud_segment);             //存储
+  // std::cout << "filter end!" << std::endl;
+  // cloud_segment->height = cloud->height;
+  // cloud_segment->width = cloud->width;
+
+  // PointCloud<Normal>::Ptr normal_cloud(new PointCloud<Normal>);
+  // estimateNormal(cloud, normal_cloud);
 
   PointCloud<Label>::Ptr labels(new PointCloud<Label>);
   std::vector<PointIndices> label_indices;
-  segmentObjects(cloud, labels, label_indices, cluster_indices);
+  segmentObjects(cloud, cloud_segment, labels, label_indices, cluster_indices);
 
   double end = pcl::getTime();
   RCUTILS_LOG_DEBUG("Segmentation : %f", double(end - start));
@@ -75,47 +131,46 @@ void OrganizedMultiPlaneSegmenter::estimateNormal(const PointCloudT::ConstPtr& c
   RCUTILS_LOG_DEBUG("Calc normal : %f", double(end - start));
 }
 
-void OrganizedMultiPlaneSegmenter::segmentPlanes(const PointCloudT::ConstPtr& cloud,
-                                                 const pcl::PointCloud<Normal>::Ptr& normal_cloud,
-                                                 pcl::PointCloud<Label>::Ptr labels,
-                                                 std::vector<PointIndices>& label_indices)
-{
-  double start = pcl::getTime();
-
-  std::vector<PlanarRegion<PointT>, Eigen::aligned_allocator<PlanarRegion<PointT>>> regions;
-  std::vector<pcl::ModelCoefficients> model_coefficients;
-  std::vector<PointIndices> inlier_indices;
-  std::vector<PointIndices> boundary_indices;
-  plane_segmentation_.setInputNormals(normal_cloud);
-  plane_segmentation_.setInputCloud(cloud);
-  plane_segmentation_.segmentAndRefine(regions, model_coefficients, inlier_indices, labels, label_indices,
-                                       boundary_indices);
-
-  double end = pcl::getTime();
-  RCUTILS_LOG_DEBUG("Plane detection : %f", double(end - start));
-}
-
-void OrganizedMultiPlaneSegmenter::segmentObjects(const PointCloudT::ConstPtr& cloud, PointCloud<Label>::Ptr labels,
+void OrganizedMultiPlaneSegmenter::segmentObjects(const PointCloudT::ConstPtr& cloud, PointCloudT::Ptr& cloud_segment, PointCloud<Label>::Ptr labels,
                                                   std::vector<PointIndices>& label_indices,
                                                   std::vector<PointIndices>& cluster_indices)
 {
   double start = pcl::getTime();
 
   std::vector<bool> plane_labels;
-  plane_labels.resize(label_indices.size(), false);
+  plane_labels.resize(cloud->points.size(), false);
   for (size_t i = 0; i < cloud->points.size(); i++)
   {
     pcl::Label lab;
     lab.label = i;
     labels->points.push_back(lab);
   }
-  euclidean_cluster_comparator_->setInputCloud(cloud);
-  euclidean_cluster_comparator_->setLabels(labels);
-  euclidean_cluster_comparator_->setExcludeLabels(plane_labels);
-  PointCloud<Label> euclidean_labels;
-  pcl::OrganizedConnectedComponentSegmentation<PointT, Label> euclidean_segmentation(euclidean_cluster_comparator_);
-  euclidean_segmentation.setInputCloud(cloud);
-  euclidean_segmentation.segment(euclidean_labels, cluster_indices);
+  pcl::UniformSampling<PointT> uniform_sampling;
+  PointCloudT::Ptr cloud_sampling(new PointCloudT);
+  PointCloudT::Ptr cloud_filter(new PointCloudT);
+  uniform_sampling.setInputCloud (cloud);
+  uniform_sampling.setRadiusSearch (0.01f);
+  uniform_sampling.filter (*cloud_sampling);
+  pcl::PassThrough<PointT> pass;
+	pass.setInputCloud(cloud_sampling);
+	pass.setFilterFieldName("z");
+	pass.setFilterLimits(0.2f, 15.0f);
+  pass.filter(*cloud_filter);
+  std::cout << "Model total points: " << cloud->points.size () << "; Selected Keypoints: " << cloud_filter->points.size () << std::endl;
+  	// 创建滤波器对象
+	pcl::StatisticalOutlierRemoval<PointT> sor;
+  
+	sor.setInputCloud(cloud_filter);
+	sor.setMeanK(20);
+	sor.setStddevMulThresh(0.002f);
+	sor.filter(*cloud_segment);
+  std::cout << "downsampled points: " << cloud_filter->points.size () << "; removal points: " << cloud_segment->points.size () << std::endl;
+  // PointCloud<Label> euclidean_labels;
+  // pcl::OrganizedConnectedComponentSegmentation<PointT, Label> euclidean_segmentation(euclidean_cluster_comparator_);
+  // // euclidean_segmentation.setProjectPoints(true);
+  // std::cout << "height: " << cloud->height << ", width: " << cloud->width << std::endl;
+  // euclidean_segmentation.setInputCloud(cloud_filter);
+  // euclidean_segmentation.segment(euclidean_labels, cluster_indices);
 
   // auto func = [this](PointIndices indices) { return indices.indices.size() < this->object_minimum_points_; };
   // cluster_indices.erase(std::remove_if(cluster_indices.begin(), cluster_indices.end(), func), cluster_indices.end());
@@ -134,7 +189,7 @@ void OrganizedMultiPlaneSegmenter::applyConfig()
   normal_estimation_.setMaxDepthChangeFactor(conf_.get<float>("NORMAL_MAX_DEPTH_CHANGE", 0.02f));
   normal_estimation_.setNormalSmoothingSize(conf_.get<float>("NORMAL_SMOOTH_SIZE", 30.0f));
 
-  euclidean_cluster_comparator_->setDistanceThreshold(conf_.get<float>("EUCLIDEAN_DISTANCE_THRESHOLD", 0.02f), false);
+  // euclidean_cluster_comparator_->setDistanceThreshold(conf_.get<float>("EUCLIDEAN_DISTANCE_THRESHOLD", 0.02f), false);
 
   plane_segmentation_.setMinInliers(conf_.get<size_t>("MIN_PLANE_INLIERS", 1000));
   plane_segmentation_.setAngularThreshold(pcl::deg2rad(conf_.get<float>("NORMAL_ANGLE_THRESHOLD", 2.0f)));
