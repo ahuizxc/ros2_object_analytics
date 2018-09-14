@@ -78,9 +78,9 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 3.5
       Size (m): 0.00999999978
-      Style: Flat Squares
+      Style: Points
       Topic: /camera/depth/color/aligned_points
       Unreliable: false
       Use Fixed Frame: true

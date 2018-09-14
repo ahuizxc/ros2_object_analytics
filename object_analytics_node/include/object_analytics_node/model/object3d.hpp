@@ -124,6 +124,7 @@ public:
     min_.y = min_.y - 1.5 * height;
     max_.x = max_.x + 1.5 * width;
     max_.y = max_.y + 1.5 * height;
+    max_.z += max_.z -min_.z;
   }
   inline void setMax(const geometry_msgs::msg::Point32& max_new)
   {

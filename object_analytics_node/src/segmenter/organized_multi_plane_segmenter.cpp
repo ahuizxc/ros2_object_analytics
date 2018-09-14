@@ -149,7 +149,7 @@ void OrganizedMultiPlaneSegmenter::segmentObjects(const PointCloudT::ConstPtr& c
   PointCloudT::Ptr cloud_sampling(new PointCloudT);
   PointCloudT::Ptr cloud_filter(new PointCloudT);
   uniform_sampling.setInputCloud (cloud);
-  uniform_sampling.setRadiusSearch (0.01f);
+  uniform_sampling.setRadiusSearch (0.005f);
   uniform_sampling.filter (*cloud_sampling);
   pcl::PassThrough<PointT> pass;
 	pass.setInputCloud(cloud_sampling);
@@ -159,8 +159,13 @@ void OrganizedMultiPlaneSegmenter::segmentObjects(const PointCloudT::ConstPtr& c
   std::cout << "Model total points: " << cloud->points.size () << "; Selected Keypoints: " << cloud_filter->points.size () << std::endl;
   	// 创建滤波器对象
 	pcl::StatisticalOutlierRemoval<PointT> sor;
-  
+  if (cloud_filter->points.size() == 0)
+  {
+    return;
+  }
+  else{
 	sor.setInputCloud(cloud_filter);
+  }
 	sor.setMeanK(20);
 	sor.setStddevMulThresh(0.002f);
 	sor.filter(*cloud_segment);
