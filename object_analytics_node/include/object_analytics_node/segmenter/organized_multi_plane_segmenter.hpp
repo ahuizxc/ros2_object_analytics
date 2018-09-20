@@ -75,8 +75,7 @@ private:
   void estimateNormal(const PointCloudT::ConstPtr& cloud, pcl::PointCloud<pcl::Normal>::Ptr& cloud_normal);
   void segmentPlanes(const PointCloudT::ConstPtr& cloud, const pcl::PointCloud<pcl::Normal>::Ptr& normal_cloud,
                      pcl::PointCloud<pcl::Label>::Ptr labels, std::vector<pcl::PointIndices>& label_indices);
-  void segmentObjects(const PointCloudT::ConstPtr& cloud, pcl::PointCloud<pcl::Label>::Ptr labels,
-                      std::vector<pcl::PointIndices>& label_indices, std::vector<pcl::PointIndices>& cluster_indices);
+  void segmentObjects(const PointCloudT::ConstPtr& cloud, pcl::PointCloud<pcl::Label>::Ptr labels, std::vector<pcl::PointIndices>& cluster_indices);
 
   void applyConfig();
 
