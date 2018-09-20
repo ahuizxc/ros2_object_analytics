@@ -50,29 +50,8 @@ void OrganizedMultiPlaneSegmenter::segment(const PointCloudT::ConstPtr& cloud, P
 {
   double start = pcl::getTime();
   RCUTILS_LOG_DEBUG("Total original point size = %d", cloud->size());
-
-  // pcl::copyPointCloud(*cloud, *cloud_segment);  // cloud_segment is same as cloud for this algorithm
-
-  // PointCloud<Normal>::Ptr normal_cloud(new PointCloud<Normal>);
-  // estimateNormal(cloud, normal_cloud);
-  // pcl::PointCloud
-  PointCloud<Label>::Ptr labels(new PointCloud<Label>);
-  // pcl::Label;
-  // std::vector<PointIndices> label_indices;
-  // In the new algorithm, there is no need to segment the plane.
-  // segmentPlanes(cloud, normal_cloud, labels, label_indices);
-
-
-  for (size_t i = 0; i<cloud->size(); i++)
-  {
-    Label label;
-    label.label = i;
-    labels->points.push_back(label);
-  }
-
-  
-  segmentObjects(cloud, labels, cluster_indices);
-
+  pcl::copyPointCloud(*cloud, *cloud_segment);  // cloud_segment is same as cloud for this algorithm
+  segmentObjects(cloud, cluster_indices);
   double end = pcl::getTime();
   RCUTILS_LOG_DEBUG("Segmentation : %f", double(end - start));
 }
@@ -108,21 +87,19 @@ void OrganizedMultiPlaneSegmenter::segmentPlanes(const PointCloudT::ConstPtr& cl
   RCUTILS_LOG_DEBUG("Plane detection : %f", double(end - start));
 }
 
-void OrganizedMultiPlaneSegmenter::segmentObjects(const PointCloudT::ConstPtr& cloud, PointCloud<Label>::Ptr labels,
+void OrganizedMultiPlaneSegmenter::segmentObjects(const PointCloudT::ConstPtr& cloud,
                                                   std::vector<PointIndices>& cluster_indices)
 {
   double start = pcl::getTime();
-
+  PointCloud<Label>::Ptr labels(new PointCloud<Label>);
+  for (size_t i = 0; i<cloud->size(); i++)
+  {
+    Label label;
+    label.label = i;
+    labels->points.push_back(label);
+  }
   std::vector<bool> plane_labels;
   plane_labels.resize(cloud->size(), false);
-  // for (size_t i = 0; i < label_indices.size(); i++)
-  // {
-  //   if (label_indices[i].indices.size() > plane_minimum_points_)
-  //   {
-  //     plane_labels[i] = true;
-  //   }
-  // }
-
   euclidean_cluster_comparator_->setInputCloud(cloud);
   euclidean_cluster_comparator_->setLabels(labels);
   euclidean_cluster_comparator_->setExcludeLabels(plane_labels);
