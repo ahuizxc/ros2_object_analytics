@@ -169,13 +169,13 @@ private:
     char ss_tra[100];
     snprintf(ss_tra, sizeof(ss_tra), "Tracking:fps=%.2fHz,latency=%.2fSec",
       tra_fps_, tra_latency_);
-    cv::putText(cv_ptr->image, ss_tra, cvPoint(2, 15), cv::FONT_HERSHEY_SIMPLEX, 0.5,
-      cv::Scalar(255, 0, 0), 1);
+    cv::putText(cv_ptr->image, ss_tra, cvPoint(2, 30), cv::FONT_HERSHEY_SIMPLEX, 0.9,
+      cv::Scalar(0, 0, 255), 2);
     char ss_loc[100];
     snprintf(ss_loc, sizeof(ss_loc), "Localization:fps=%.2fHz,latency=%.2fSec",
       loc_fps_, loc_latency_);
-    cv::putText(cv_ptr->image, ss_loc, cvPoint(2, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5,
-      cv::Scalar(255, 0, 0), 1);
+    cv::putText(cv_ptr->image, ss_loc, cvPoint(2, 60), cv::FONT_HERSHEY_SIMPLEX, 0.9,
+      cv::Scalar(0, 0, 255), 2);
 
     image_pub_->publish(cv_ptr->toImageMsg());
   }
